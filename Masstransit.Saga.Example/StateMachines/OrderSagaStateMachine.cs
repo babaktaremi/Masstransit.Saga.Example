@@ -17,7 +17,7 @@ public class OrderSagaStateMachine:MassTransitStateMachine<OrderSaga>
     public State Processed { get; private set; }
     public State Completed { get; private set; }
 
-    public OrderSagaStateMachine()
+    public OrderSagaStateMachine(ILogger<OrderSagaStateMachine> logger)
     {
         InstanceState(x=>x.CurrentState);
 
@@ -40,20 +40,24 @@ public class OrderSagaStateMachine:MassTransitStateMachine<OrderSaga>
                     CustomerName = context.Saga.CustomerName
                 })
             .TransitionTo(Processed)
-                .Publish(context=>new OrderCompleted()
-                {
-                    OrderId = context.Saga.OrderId
-                })
-                .TransitionTo(Completed)
             );
 
-        During(Processed
+        During(Processed,
+            When(OrderCompleted)
+                .Then(_ =>
+                {
+                    logger.LogWarning("ORDER COMPLETED EVENT RECEIVED...");
+                })
+                .TransitionTo(Completed)
+                .Finalize());
+
+
+      During(Processed
             ,Ignore(OrderSubmitted));
 
         During(Completed
             , Ignore(OrderProcessed));
 
-        SetCompletedWhenFinalized();
 
 
     }

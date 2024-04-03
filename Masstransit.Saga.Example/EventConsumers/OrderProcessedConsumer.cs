@@ -13,6 +13,9 @@ public class OrderProcessedConsumer(ILogger<OrderProcessedConsumer> logger):ICon
         logger.LogWarning("Order successfully processed by customer {customerName} with Id {orderId} with name {orderName}", context.Message.CustomerName, context.Message.OrderId, context.Message.OrderName);
         logger.LogWarning("Sending Processed Email...");
 
-
+        await context.Publish(new OrderCompleted()
+        {
+            OrderId = context.Message.OrderId
+        });
     }
 }
